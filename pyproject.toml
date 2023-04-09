@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "probabilistic_circuits"
+version = "0.0.1"
+authors = [
+  { name="Moritz Kulessa"},
+]
+description = "An extensive library for probabilistic circuits"
+readme = "README.md"
+requires-python = ">=3.8"
+dynamic = ["dependencies"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: GPL-2.0-only License",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/MoritzKulessa/PC"
+"Bug Tracker" = "https://github.com/MoritzKulessa/PC/issues"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

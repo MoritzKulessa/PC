@@ -1,11 +1,12 @@
-def plot_pc(pc, file_name="pc_plot.pdf", path=None, make_leaves_unique=False):
+from probabilistic_circuits.pc_nodes import PCNode, PCInnerNode, PCSum, PCProduct
+
+def plot_pc(pc: PCNode, path: str):
+    """Creates a plot of the given circuit and saves it to the path."""
     import numpy as np
     import networkx as nx
     import matplotlib.pyplot as plt
     from matplotlib.ticker import NullLocator
     from networkx.drawing.nx_pydot import graphviz_layout
-    from probabilistic_circuits.pc_nodes import PCSum, PCProduct, PCLeaf
-    from util import io
 
     id_dict = {}
     g = nx.Graph()
@@ -26,14 +27,13 @@ def plot_pc(pc, file_name="pc_plot.pdf", path=None, make_leaves_unique=False):
                 assert(len(node.scope) == 1)
                 label = str(list(node.scope)[0])
         labels[id_dict[node]] = label
-        if isinstance(node, PCLeaf):
-            return
-        for i, child in enumerate(node.children):
-            edge_label = ""
-            if isinstance(node, PCSum):
-                edge_label = np.round(node.weights[i], 3)
-            _create_graph(child)
-            g.add_edge(id_dict[child], id_dict[node], weight=edge_label)
+        if isinstance(node, PCInnerNode):
+            for i, child in enumerate(node.children):
+                edge_label = ""
+                if isinstance(node, PCSum):
+                    edge_label = np.round(node.weights[i], 3)
+                _create_graph(child)
+                g.add_edge(id_dict[child], id_dict[node], weight=edge_label)
     _create_graph(pc)
 
     plt.clf()
@@ -51,6 +51,4 @@ def plot_pc(pc, file_name="pc_plot.pdf", path=None, make_leaves_unique=False):
     plt.gca().xaxis.set_major_locator(NullLocator())
     plt.gca().yaxis.set_major_locator(NullLocator())
 
-    if path is None:
-        path = io.get_project_directory() + "_graphs/"
-    plt.savefig(path + file_name, bbox_inches="tight", pad_inches=0, dpi=500)
+    plt.savefig(path, bbox_inches="tight", pad_inches=0, dpi=500)

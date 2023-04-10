@@ -20,13 +20,13 @@ def inference(pc: PCNode, instance: dict) -> float:
     return _inference(pc, set(instance.keys()))
 
 
-def sample(pc: PCNode, evidence: dict = None, n: int = 1):
+def sample(pc: PCNode, evidence: dict = None, n: int = 1) -> list[dict[object, object]] | None:
     """
     Generates a list of n samples for the given circuit.
     If evidence is given, the circuit will be conditioned on the evidence before the samples are generated.
     This method will return None if no samples can be generated for the given evidence.
     """
-    def _sample(node: PCNode):
+    def _sample(node: PCNode) -> dict[object, object]:
         if isinstance(node, PCProduct):
             return dict(ChainMap(*[_sample(child) for child in node.children]))
         elif isinstance(node, PCSum):

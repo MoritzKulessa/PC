@@ -39,13 +39,13 @@ class PCLeaf(PCNode, ABC):
     def inference(self, instance: dict) -> float:
         """Returns the probability/density for the given instance."""
     @abstractmethod
-    def sample(self) -> dict:
+    def sample(self) -> dict[object, object]:
         """Returns a sample drawn from the implemented probability distribution."""
     @abstractmethod
-    def max_prob(self) -> float:
+    def max_inference(self) -> float:
         """Returns the maximum probability/density of the implemented probability distribution."""
     @abstractmethod
-    def max_value(self) -> dict:
+    def mpe(self) -> dict[object, list[object]]:
         """Returns the most likely value of the implemented probability distribution."""
 
 
@@ -58,13 +58,13 @@ class OffsetLeaf(PCLeaf):
     def inference(self, instance: dict) -> float:
         return 1.0
 
-    def sample(self) -> dict:
+    def sample(self) -> dict[object, object]:
         return {}
 
-    def max_prob(self) -> float:
+    def max_inference(self) -> float:
         return 1.0
 
-    def max_value(self) -> dict:
+    def mpe(self) -> dict[object, list[object]]:
         return {}
 
 
@@ -81,17 +81,17 @@ class ValueLeaf(PCLeaf):
 
     def inference(self, inst: dict) -> float:
         s, = self.scope
-        if self.value == inst[s]:
-            return 1.0
-        return 0.0
+        if s not in inst or self.value != inst[s]:
+            return 0.0
+        return 1.0
 
-    def sample(self) -> dict:
+    def sample(self) -> dict[object, object]:
         s, = self.scope
         return {s: self.value}
 
-    def max_prob(self) -> float:
+    def max_inference(self) -> float:
         return 1.0
 
-    def max_value(self) -> dict:
+    def mpe(self) -> dict[object, list[object]]:
         s, = self.scope
         return {s: [self.value]}

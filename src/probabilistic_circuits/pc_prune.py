@@ -6,9 +6,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def contract(pc: PCNode):
+def contract(pc: PCNode) -> PCNode:
     """Prunes nodes from the given circuit (inplace) without changing the probability distribution"""
-    def _contract_recursive(node: PCNode, parent_node: PCInnerNode=None, index: int=None):
+    def _contract_recursive(node: PCNode, parent_node: PCInnerNode = None, index: int = None):
         if isinstance(node, PCInnerNode):
             if len(node.children) == 0:
                 # Remove node
@@ -87,7 +87,7 @@ def contract(pc: PCNode):
     return pc
 
 
-def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool=True):
+def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool = True) -> tuple[float | None, PCNode | None]:
     """
     Creates a new circuit by conditioning on the given evidence. If remove_conditioned_nodes is set to False, the
     created circuit keeps the nodes it was conditioned on. If leaf nodes do not change, the created circuit will use
@@ -162,4 +162,3 @@ def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool=True):
         pc_basics.update_scope(cond_structure)
         cond_structure = contract(cond_structure)
     return cond_prob, cond_structure
-

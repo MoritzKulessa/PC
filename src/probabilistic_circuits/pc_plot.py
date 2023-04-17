@@ -1,5 +1,6 @@
 from probabilistic_circuits.pc_nodes import PCNode, PCInnerNode, PCSum, PCProduct
 
+
 def plot_pc(pc: PCNode, path: str):
     """Creates a plot of the given circuit and saves it to the path."""
     import numpy as np

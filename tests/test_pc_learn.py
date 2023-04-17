@@ -140,7 +140,7 @@ class TestLearning(unittest.TestCase):
                     matrix[i][j] = inst[attribute]
 
         # Check for parameter minimum instances slice equals 1
-        pc = pc_learn.learn_dict(instances, min_instances_slice=1)
+        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=1)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)
@@ -160,7 +160,7 @@ class TestLearning(unittest.TestCase):
 
         # Check for parameter minimum instances slice equals 2-10
         for i in range(2, 11):
-            pc = pc_learn.learn_dict(instances, min_instances_slice=i)
+            pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=i)
             # Check structure
             self.assertTrue(pc is not None)
             pc_basics.check_validity(pc)
@@ -172,7 +172,7 @@ class TestLearning(unittest.TestCase):
             self.assertAlmostEqual(0.1, pc_query.inference(pc, {"e": True}))
 
         # Check for parameter minimum instances slice equals the dataset size plus one
-        pc = pc_learn.learn_dict(instances, min_instances_slice=11)
+        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=11)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)

@@ -109,6 +109,13 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
             return OffsetLeaf()
         return ValueLeaf(scope=set(columns), value=unique_values[0])
 
+    # Check the minimum number of instances
+    if data.shape[0] < min_instances_slice:
+        logger.info("Less than min instances slice: {}".format(data))
+        return PCProduct(scope=set(columns), children=[
+            _learn(data[:, i].reshape(-1, 1), columns[i], min_instances_slice, nan_value, random_state=random_state)
+            for i in range(data.shape[1])])
+
     # Check for independent subpopulations
     split_rows, split_cols = _check_for_independent_rows(data, nan_value=nan_value)
     if split_rows is not None:
@@ -121,11 +128,6 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
             children.append(_learn(data_slice, columns[split_col], min_instances_slice, nan_value, random_state=random_state))
             weights.append(len(split_row)/data.shape[0])
         return PCSum(scope=set(columns), children=children, weights=weights)
-
-    # Check the minimum number of instances
-    if data.shape[0] < min_instances_slice:
-        logger.info("Less than min instances slice: {}".format(data))
-        return PCProduct(scope=set(columns), children=[_learn(data[:, i].reshape(-1, 1), columns[i], min_instances_slice, nan_value, random_state=random_state) for i in range(data.shape[1])])
 
     # Naive factorization
     nan_cols, naive_split = _check_columns(data, nan_value)
@@ -147,7 +149,7 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
         return PCProduct(scope=set(columns[remaining_cols]), children=children)
 
     # Perform clustering
-    clusters = KMeans(n_clusters=2, random_state=random_state).fit_predict(data)
+    clusters = KMeans(n_clusters=2, n_init='auto', random_state=random_state).fit_predict(data)
     cluster_indices = [np.arange(len(clusters))[clusters == i] for i in range(2)]
     logger.info("Found clusters: {}".format(len(cluster_indices)))
 

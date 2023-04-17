@@ -85,7 +85,7 @@ def _check_columns(data, nan_value) -> tuple[list[int], list[int]]:
     return nan_cols, naive_split
 
 
-def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_value: object, random_state: int = 1337):
+def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_value: object, random_state: int = 1337) -> PCNode:
     """
     Learns the structure of a circuit recursively using the given matrix and names for the columns. The growing of the
     structure will be stopped if less than min_instances_slice instances are available. The nan_value is the placeholder
@@ -164,7 +164,7 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
     return PCSum(scope=set(columns), children=children, weights=weights)
 
 
-def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int = 1, nan_value: object = 1000000):
+def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int = 1, nan_value: object = 1000000) -> PCNode:
     """
     Learns a circuit from a structured dataset. The growing of the structure will be stopped if less than
     min_instances_slice instances are available. The nan_value is the placeholder for values which are unknown.
@@ -178,7 +178,7 @@ def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int 
     return pc_prune.contract(pc)
 
 
-def learn_dict(instances: list[dict], min_instances_slice: int = 1, nan_value: object = 10000000):
+def learn_dict(instances: list[dict], min_instances_slice: int = 1, nan_value: object = 10000000) -> PCNode:
     """
     Learns a circuit from a list of dictionaries. The growing of the structure will be stopped if less than
     min_instances_slice instances are available. The nan_value is the placeholder for values which are unknown.
@@ -192,7 +192,7 @@ def learn_dict(instances: list[dict], min_instances_slice: int = 1, nan_value: o
     return pc_prune.contract(pc)
 
 
-def learn_dict_shallow(instances: list[dict]):
+def learn_dict_shallow(instances: list[dict]) -> PCNode:
     """
     Learns a shallow circuit from a list of dictionaries. Each instance will be represented by a product node with the
     assigned values as ValueLeaf nodes. All product nodes will be combined by a sum node with equal weights.
@@ -211,7 +211,7 @@ def learn_dict_shallow(instances: list[dict]):
     return pc_prune.contract(pc)
 
 
-def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float):
+def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float) -> PCSum:
     """Combines two circuits by a sum node. The weights of the sum node is relative to their sizes."""
     return PCSum(
         children=[pc1, pc2],

@@ -18,7 +18,6 @@ class PCSum(PCInnerNode):
     """Sum unit (mixture model)."""
     def __init__(self, children: list, weights: list, scope: set = None):
         PCInnerNode.__init__(self, children, scope)
-        assert (len(weights) == len(children))
         self.weights = weights
 
 

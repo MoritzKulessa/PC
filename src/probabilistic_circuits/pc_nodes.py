@@ -44,7 +44,7 @@ class PCLeaf(PCNode, ABC):
     def max_inference(self) -> float:
         """Returns the maximum probability/density of the implemented probability distribution."""
     @abstractmethod
-    def mpe(self) -> dict[object, list[object]]:
+    def mpe(self) -> dict[object, object]:
         """Returns the most likely value of the implemented probability distribution."""
 
 
@@ -63,7 +63,7 @@ class OffsetLeaf(PCLeaf):
     def max_inference(self) -> float:
         return 1.0
 
-    def mpe(self) -> dict[object, list[object]]:
+    def mpe(self) -> dict[object, object]:
         return {}
 
 
@@ -91,6 +91,6 @@ class ValueLeaf(PCLeaf):
     def max_inference(self) -> float:
         return 1.0
 
-    def mpe(self) -> dict[object, list[object]]:
+    def mpe(self) -> dict[object, object]:
         s, = self.scope
-        return {s: [self.value]}
+        return {s: self.value}

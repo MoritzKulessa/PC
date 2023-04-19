@@ -111,7 +111,7 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
 
     # Check the minimum number of instances
     if data.shape[0] < min_instances_slice:
-        logger.info("Less than min instances slice: {}".format(data))
+        logger.info("Less than min instances slice: {}".format(len(data)))
         return PCProduct(scope=set(columns), children=[
             _learn(data[:, i].reshape(-1, 1), columns[i], min_instances_slice, nan_value, random_state=random_state)
             for i in range(data.shape[1])])

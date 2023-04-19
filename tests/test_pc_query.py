@@ -98,7 +98,7 @@ class TestQueries(unittest.TestCase):
 
         pc = get_example_pc()
 
-        counts = _count_samples(pc_query.sample(pc, evidence={}, n=10000))
+        counts = _count_samples(pc_query.sample(pc, n=10000))
         _check_p_value(750,  counts, 'car=BMW')
         _check_p_value(1000, counts, 'car=Mercedes')
         _check_p_value(750,  counts, 'car=VW')
@@ -108,18 +108,35 @@ class TestQueries(unittest.TestCase):
         _check_p_value(1000, counts, 'car=Mercedes, equipment=radio')
         _check_p_value(750,  counts, 'car=VW, equipment=radio')
 
-        counts = _count_samples(pc_query.sample(pc, evidence={'car': 'BMW'}, n=10000))
-        self.assertTrue(all(['car=BMW' in sample_name for sample_name in counts.keys()]))
-        _check_p_value(5000, counts, 'car=BMW')
-        _check_p_value(5000, counts, 'car=BMW, equipment=radio')
+    def test_mpe(self):
+        """Tests the functionality of the method sample."""
+        pc = get_example_pc()
 
-        counts = _count_samples(pc_query.sample(pc, evidence={'airplane': 'Airbus'}, n=1000))
-        self.assertTrue(all(['airplane=Airbus' in sample_name for sample_name in counts.keys()]))
-        self.assertEqual(1000, counts['airplane=Airbus, equipment=radio'])
+        # Test static
+        instance = pc_query.mpe(pc, randomized=False)
+        self.assertTrue("equipment" in instance)
+        self.assertTrue("radio" in instance["equipment"])
+        self.assertTrue("airplane" in instance)
+        self.assertTrue(instance["airplane"] == "Airbus")
 
-        counts = _count_samples(pc_query.sample(pc, evidence={'equipment': 'radio'}, n=1000))
-        self.assertTrue(all(['equipment=radio' in sample_name for sample_name in counts.keys()]))
+        # Test randomized
+        def _count_samples(samples: list[dict[object, object]]) -> Counter:
+            sample_strings = [", ".join(sorted([str(k) + "=" + str(v) for k, v in s.items()])) for s in samples]
+            return Counter(sample_strings)
 
+        def _check_p_value(ground_truth: int, counter: Counter, sample_identifier: str, alpha: float = 0.01):
+            sample_count = counter[sample_identifier]
+            cdf_value = stats.poisson(mu=ground_truth).cdf(sample_count)
+            p_value = min([cdf_value, 1 - cdf_value])
+            if p_value < alpha / 2:
+                logger.warning("Computed p-value {} for {} (expected count={}, observed count={})"
+                                .format(round(p_value, 10), sample_identifier, ground_truth, sample_count))
+            self.assertTrue(p_value > 1.0e-10)
+
+        n = 1000
+        counts = _count_samples([pc_query.mpe(pc, randomized=True) for _ in range(n)])
+        _check_p_value(500, counts, 'airplane=Boing, equipment=radio')
+        _check_p_value(500, counts, 'airplane=Airbus, equipment=radio')
 
 if __name__ == '__main__':
     unittest.main()

@@ -5,6 +5,7 @@ from probabilistic_circuits import pc_basics, pc_prune
 from probabilistic_circuits.pc_nodes import PCNode, PCSum, PCProduct, ValueLeaf, OffsetLeaf
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +86,8 @@ def _check_columns(data, nan_value) -> tuple[list[int], list[int]]:
     return nan_cols, naive_split
 
 
-def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_value: object, random_state: int = 1337) -> PCNode:
+def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_value: object,
+           random_state: int = 1337) -> PCNode:
     """
     Learns the structure of a circuit recursively using the given matrix and names for the columns. The growing of the
     structure will be stopped if less than min_instances_slice instances are available. The nan_value is the placeholder
@@ -103,7 +105,8 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
         logger.info("Finalize {} Unique values = {}".format(data.shape, len(unique_values)))
         if len(unique_values) > 1:
             return PCSum(scope=set(columns),
-                         children=[_learn(data[data[:, 0] == value], columns, min_instances_slice, nan_value, random_state=random_state) for value in unique_values],
+                         children=[_learn(data[data[:, 0] == value], columns, min_instances_slice, nan_value,
+                                          random_state=random_state) for value in unique_values],
                          weights=list(unique_counts / np.sum(unique_counts)))
         if unique_values[0] == nan_value:
             return OffsetLeaf()
@@ -125,8 +128,9 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
         for split_row, split_col in zip(split_rows, split_cols):
             data_slice = data[split_row, :]
             data_slice = data_slice[:, split_col]
-            children.append(_learn(data_slice, columns[split_col], min_instances_slice, nan_value, random_state=random_state))
-            weights.append(len(split_row)/data.shape[0])
+            children.append(
+                _learn(data_slice, columns[split_col], min_instances_slice, nan_value, random_state=random_state))
+            weights.append(len(split_row) / data.shape[0])
         return PCSum(scope=set(columns), children=children, weights=weights)
 
     # Naive factorization
@@ -134,17 +138,22 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
     remaining_cols = [i for i in range(data.shape[1]) if i not in nan_cols and i not in naive_split]
     if len(naive_split) > 0:
         logger.info("Found {} constant attributes".format(naive_split))
-        children = [_learn(data[:, col].reshape(-1, 1), columns[col:col+1], min_instances_slice, nan_value, random_state=random_state) for col in naive_split]
+        children = [_learn(data[:, col].reshape(-1, 1), columns[col:col + 1], min_instances_slice, nan_value,
+                           random_state=random_state) for col in naive_split]
         if len(remaining_cols) > 0:
             remaining_data = data[:, remaining_cols]
-            non_null_rows = [row for row in range(remaining_data.shape[0]) if not np.all(remaining_data[row] == nan_value)]
+            non_null_rows = [row for row in range(remaining_data.shape[0]) if
+                             not np.all(remaining_data[row] == nan_value)]
             if len(non_null_rows) < remaining_data.shape[0]:
                 remaining_data = remaining_data[non_null_rows, :]
-                sum_children = [OffsetLeaf(), _learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value, random_state=random_state)]
-                sum_weights = [(data.shape[0] - len(non_null_rows)) / data.shape[0], len(non_null_rows)/data.shape[0]]
+                sum_children = [OffsetLeaf(),
+                                _learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value,
+                                       random_state=random_state)]
+                sum_weights = [(data.shape[0] - len(non_null_rows)) / data.shape[0], len(non_null_rows) / data.shape[0]]
                 children.append(PCSum(children=sum_children, weights=sum_weights))
             else:
-                children.append(_learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value, random_state=random_state))
+                children.append(_learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value,
+                                       random_state=random_state))
 
         return PCProduct(scope=set(columns[remaining_cols]), children=children)
 
@@ -160,13 +169,15 @@ def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_va
         nan_cols, _ = _check_columns(cluster_data, nan_value)
         remaining_cols = [i for i in range(data.shape[1]) if i not in nan_cols]
         cluster_data = cluster_data[:, remaining_cols]
-        children.append(_learn(cluster_data, columns[remaining_cols], min_instances_slice, nan_value, random_state=random_state))
-        weights.append(len(cluster_data)/len(data))
+        children.append(
+            _learn(cluster_data, columns[remaining_cols], min_instances_slice, nan_value, random_state=random_state))
+        weights.append(len(cluster_data) / len(data))
 
     return PCSum(scope=set(columns), children=children, weights=weights)
 
 
-def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int = 1, nan_value: object = 1000000) -> PCNode:
+def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int = 1,
+                 nan_value: object = 1000000) -> PCNode:
     """
     Learns a circuit from a structured dataset. The growing of the structure will be stopped if less than
     min_instances_slice instances are available. The nan_value is the placeholder for values which are unknown.
@@ -217,6 +228,6 @@ def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float) -> PCSum:
     """Combines two circuits by a sum node. The weights of the sum node is relative to their sizes."""
     return PCSum(
         children=[pc1, pc2],
-        weights=[size1/(size1 + size2), size2/(size1 + size2)],
+        weights=[size1 / (size1 + size2), size2 / (size1 + size2)],
         scope=set.union(pc1.scope, pc2.scope)
     )

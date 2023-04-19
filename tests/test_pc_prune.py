@@ -188,11 +188,11 @@ class TestPruning(unittest.TestCase):
         self.assertNotEqual(pc, cond_pc)
         self.assertTrue(len(pc_basics.get_nodes(pc)) > len(pc_basics.get_nodes(cond_pc)))
         pc_basics.check_validity(pc)
-        self.assertAlmostEqual(0.3*1/3, pc_query.inference(cond_pc, {"car": "BMW"}))
-        self.assertAlmostEqual(0.4*1/3, pc_query.inference(cond_pc, {"car": "Mercedes"}))
-        self.assertAlmostEqual(0.3*1/3, pc_query.inference(cond_pc, {"car": "VW"}))
-        self.assertAlmostEqual(1/3, pc_query.inference(cond_pc, {"airplane": "Airbus"}))
-        self.assertAlmostEqual(1/3, pc_query.inference(cond_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.3 * 1 / 3, pc_query.inference(cond_pc, {"car": "BMW"}))
+        self.assertAlmostEqual(0.4 * 1 / 3, pc_query.inference(cond_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.3 * 1 / 3, pc_query.inference(cond_pc, {"car": "VW"}))
+        self.assertAlmostEqual(1 / 3, pc_query.inference(cond_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(1 / 3, pc_query.inference(cond_pc, {"airplane": "Boing"}))
         self.assertAlmostEqual(0.0, pc_query.inference(cond_pc, {"equipment": "radio"}))
 
         # Check without removing conditioned nodes 1

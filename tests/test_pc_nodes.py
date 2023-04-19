@@ -47,8 +47,7 @@ class TestLeafNodes(unittest.TestCase):
         self.assertTrue(
             len(mpe) == 1 and
             isinstance(mpe, dict) and
-            len(mpe["car"]) == 1 and
-            mpe["car"][0] == "BMW"
+            mpe["car"] == "BMW"
         )
 
 

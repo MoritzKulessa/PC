@@ -22,6 +22,7 @@ def get_nodes(pc: PCNode, node_type: Type[PCNode] = PCNode) -> list[PCNode]:
 
     def _get_nodes(node: PCNode):
         nodes.append(node)
+
     apply(pc, _get_nodes, node_type=node_type)
     return nodes
 
@@ -40,6 +41,7 @@ def check_validity(pc: PCNode) -> None:
     correct type and that they do not have any children which are None. For product nodes decomposability is checked.
     This method does NOT check the smoothness for sum nodes.
     """
+
     def _check_validity(node: PCNode):
         if isinstance(node, PCProduct):
             assert (len(node.children) > 0)

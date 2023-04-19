@@ -3,11 +3,13 @@ from probabilistic_circuits.pc_nodes import PCNode, PCInnerNode, PCSum, PCProduc
 from probabilistic_circuits import pc_basics
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 def contract(pc: PCNode) -> PCNode:
     """Prunes nodes from the given circuit (inplace) without changing the probability distribution"""
+
     def _contract_recursive(node: PCNode, parent_node: PCInnerNode = None, index: int = None):
         if isinstance(node, PCInnerNode):
             if len(node.children) == 0:
@@ -26,7 +28,6 @@ def contract(pc: PCNode) -> PCNode:
                         parent_node.children[index] = node.children[0]
                     return False
             else:
-                is_sum = isinstance(node, PCSum)
                 new_children = []
                 new_weights = []
                 i = 0
@@ -36,17 +37,17 @@ def contract(pc: PCNode) -> PCNode:
                     rem = _contract_recursive(node.children[i], node, i)
 
                     # In case of a product node, check for offset-leaves to remove
-                    if not rem and not is_sum:
+                    if not rem and not isinstance(node, PCSum):
                         if isinstance(node.children[i], OffsetLeaf):
                             rem = True
                     if rem:
                         # In case the child node need to be removed
                         del node.children[i]
-                        if is_sum:
+                        if isinstance(node, PCSum):
                             del node.weights[i]
                         continue
                     else:
-                        if is_sum:
+                        if isinstance(node, PCSum):
                             if isinstance(node.children[i], PCSum):
                                 # Combine sum nodes and remove child
                                 new_children += [child for child in node.children[i].children]
@@ -97,6 +98,7 @@ def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool = True)
     If remove_conditioned_nodes is set to False, the created circuit keeps the nodes it was conditioned on.
     If leaf nodes do not change, the created circuit will use the original leaf nodes.
     """
+
     def _condition(node: PCNode, cur_scope: set[object]):
         if isinstance(node, PCProduct):
             results = [_condition(child, cur_scope.intersection(child.scope)) for child in node.children]
@@ -127,7 +129,8 @@ def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool = True)
                     if len(probs) == 0:
                         return None, None
                     return np.sum(probs), None
-                return np.sum(probs), PCSum(children=new_children, weights=list(np.array(new_weights) / np.sum(new_weights)))
+                return np.sum(probs), PCSum(children=new_children,
+                                            weights=list(np.array(new_weights) / np.sum(new_weights)))
             else:
                 return 1.0, node
 

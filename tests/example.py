@@ -1,6 +1,5 @@
 from probabilistic_circuits import pc_learn, pc_query, pc_basics
 
-
 if __name__ == "__main__":
     import sys
     import logging
@@ -49,7 +48,7 @@ if __name__ == "__main__":
 
     # Check samples
     samples = []
-    for s in pc_query.sample(pc, evidence={"d": True}, n=1000):
+    for s in pc_query.sample(pc, n=1000):
         sample_str = ", ".join(sorted([str(k) + "=" + str(v) for k, v in s.items()]))
         samples.append(sample_str)
 

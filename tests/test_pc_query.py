@@ -5,6 +5,7 @@ from probabilistic_circuits.pc_nodes import PCSum, PCProduct, ValueLeaf, OffsetL
 from probabilistic_circuits import pc_query
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -93,20 +94,20 @@ class TestQueries(unittest.TestCase):
             p_value = min([cdf_value, 1 - cdf_value])
             if p_value < alpha / 2:
                 logger.warning("Computed p-value {} for {} (expected count={}, observed count={})"
-                                .format(round(p_value, 10), sample_identifier, ground_truth, sample_count))
+                               .format(round(p_value, 10), sample_identifier, ground_truth, sample_count))
             self.assertTrue(p_value > 1.0e-10)
 
         pc = get_example_pc()
 
         counts = _count_samples(pc_query.sample(pc, n=10000))
-        _check_p_value(750,  counts, 'car=BMW')
+        _check_p_value(750, counts, 'car=BMW')
         _check_p_value(1000, counts, 'car=Mercedes')
-        _check_p_value(750,  counts, 'car=VW')
+        _check_p_value(750, counts, 'car=VW')
         _check_p_value(2500, counts, 'airplane=Airbus, equipment=radio')
         _check_p_value(2500, counts, 'airplane=Boing, equipment=radio')
-        _check_p_value(750,  counts, 'car=BMW, equipment=radio')
+        _check_p_value(750, counts, 'car=BMW, equipment=radio')
         _check_p_value(1000, counts, 'car=Mercedes, equipment=radio')
-        _check_p_value(750,  counts, 'car=VW, equipment=radio')
+        _check_p_value(750, counts, 'car=VW, equipment=radio')
 
     def test_mpe(self):
         """Tests the functionality of the method sample."""
@@ -130,13 +131,14 @@ class TestQueries(unittest.TestCase):
             p_value = min([cdf_value, 1 - cdf_value])
             if p_value < alpha / 2:
                 logger.warning("Computed p-value {} for {} (expected count={}, observed count={})"
-                                .format(round(p_value, 10), sample_identifier, ground_truth, sample_count))
+                               .format(round(p_value, 10), sample_identifier, ground_truth, sample_count))
             self.assertTrue(p_value > 1.0e-10)
 
         n = 1000
         counts = _count_samples([pc_query.mpe(pc, randomized=True) for _ in range(n)])
         _check_p_value(500, counts, 'airplane=Boing, equipment=radio')
         _check_p_value(500, counts, 'airplane=Airbus, equipment=radio')
+
 
 if __name__ == '__main__':
     unittest.main()

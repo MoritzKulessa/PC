@@ -58,6 +58,7 @@ class TestBasics(unittest.TestCase):
 
         def _func1(node: PCNode):
             node.scope.add("test")
+
         pc_basics.apply(pc, func=_func1)
 
         self.assertTrue("test" in pc.scope)

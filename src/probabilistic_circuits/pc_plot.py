@@ -25,7 +25,7 @@ def plot_pc(pc: PCNode, path: str):
             if len(node.scope) == 0:
                 label = "1"
             else:
-                assert(len(node.scope) == 1)
+                assert (len(node.scope) == 1)
                 label = str(list(node.scope)[0])
         labels[id_dict[node]] = label
         if isinstance(node, PCInnerNode):
@@ -35,18 +35,20 @@ def plot_pc(pc: PCNode, path: str):
                     edge_label = np.round(node.weights[i], 3)
                 _create_graph(child)
                 g.add_edge(id_dict[child], id_dict[node], weight=edge_label)
+
     _create_graph(pc)
 
     plt.clf()
     pos = graphviz_layout(g, prog="dot")
     ax = plt.gca()
-    nx.draw(g, pos, with_labels=True, arrows=False, node_color="#DDDDDD", edge_color="#888888", width=1, node_size=200, labels=labels, font_size=8)
+    nx.draw(g, pos, with_labels=True, arrows=False, node_color="#DDDDDD", edge_color="#888888", width=1, node_size=200,
+            labels=labels, font_size=8)
     ax.collections[0].set_edgecolor("#333333")
     nx.draw_networkx_edge_labels(g, pos=pos, edge_labels=nx.get_edge_attributes(g, "weight"), font_size=8, alpha=0.6)
-    xpos = list(map(lambda p: p[0], pos.values()))
-    ypos = list(map(lambda p: p[1], pos.values()))
-    ax.set_xlim(min(xpos) - 20, max(xpos) + 20)
-    ax.set_ylim(min(ypos) - 20, max(ypos) + 20)
+    x_pos = list(map(lambda p: p[0], pos.values()))
+    y_pos = list(map(lambda p: p[1], pos.values()))
+    ax.set_xlim(min(x_pos) - 20, max(x_pos) + 20)
+    ax.set_ylim(min(y_pos) - 20, max(y_pos) + 20)
     plt.tight_layout()
     plt.margins(0, 0)
     plt.gca().xaxis.set_major_locator(NullLocator())

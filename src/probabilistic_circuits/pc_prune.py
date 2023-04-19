@@ -89,11 +89,15 @@ def contract(pc: PCNode) -> PCNode:
 
 def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool = True) -> tuple[float | None, PCNode | None]:
     """
-    Creates a new circuit by conditioning on the given evidence. If remove_conditioned_nodes is set to False, the
-    created circuit keeps the nodes it was conditioned on. If leaf nodes do not change, the created circuit will use
-    the original leaf nodes.
+    Creates a new circuit by conditioning on the given evidence. Returns a tuple, where the first item represents the
+    probability of the evidence and the second item the newly created circuit.
+
+    If the evidence is empty or None, the first item will be 1.0 and the original circuit will be returned.
+    Conditioning on evidence which is not presented in the circuit will return a tuple with two None.
+    If remove_conditioned_nodes is set to False, the created circuit keeps the nodes it was conditioned on.
+    If leaf nodes do not change, the created circuit will use the original leaf nodes.
     """
-    def _condition(node, cur_scope):
+    def _condition(node: PCNode, cur_scope: set[object]):
         if isinstance(node, PCProduct):
             results = [_condition(child, cur_scope.intersection(child.scope)) for child in node.children]
             probs, new_children = list(map(list, zip(*results)))

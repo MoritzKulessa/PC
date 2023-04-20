@@ -86,121 +86,146 @@ def _check_columns(data, nan_value) -> tuple[list[int], list[int]]:
     return nan_cols, naive_split
 
 
-def _learn(data: np.ndarray, columns: np.array, min_instances_slice: int, nan_value: object,
-           random_state: int = 1337) -> PCNode:
+def _learn(data: np.ndarray,
+           columns: np.array,
+           weights: np.array,
+           min_population_size: float,
+           nan_value: object) -> PCNode:
     """
     Learns the structure of a circuit recursively using the given matrix and names for the columns. The growing of the
     structure will be stopped if less than min_instances_slice instances are available. The nan_value is the placeholder
-    for values which are unknown. The random seed is needed for the clustering.
+    for values which are unknown.
     """
     assert (len(data.shape) == 2)
-    assert (data.shape[0] > 0)
-    assert (data.shape[1] > 0)
+    assert (data.shape[0] == len(weights))
     assert (data.shape[1] == len(columns))
-    assert (min_instances_slice > 0)
+    assert (0.0 <= min_population_size <= 1.0)
 
-    # Finalize, if only one feature is available
-    if data.shape[1] == 1:
-        unique_values, unique_counts = np.unique(data, return_counts=True)
-        logger.info("Finalize {} Unique values = {}".format(data.shape, len(unique_values)))
-        if len(unique_values) > 1:
-            return PCSum(scope=set(columns),
-                         children=[_learn(data[data[:, 0] == value], columns, min_instances_slice, nan_value,
-                                          random_state=random_state) for value in unique_values],
-                         weights=list(unique_counts / np.sum(unique_counts)))
-        if unique_values[0] == nan_value:
-            return OffsetLeaf()
-        return ValueLeaf(scope=set(columns), value=unique_values[0])
+    def _learn_recursive(cur_data: np.ndarray, cur_columns: np.array, cur_weights: np.array):
+        assert (len(cur_data.shape) == 2)
+        assert (cur_data.shape[0] > 0)
+        assert (cur_data.shape[1] > 0)
+        assert (cur_data.shape[1] == len(cur_columns))
 
-    # Check the minimum number of instances
-    if data.shape[0] < min_instances_slice:
-        logger.info("Less than min instances slice: {}".format(len(data)))
-        return PCProduct(scope=set(columns), children=[
-            _learn(data[:, i].reshape(-1, 1), columns[i], min_instances_slice, nan_value, random_state=random_state)
-            for i in range(data.shape[1])])
+        # Finalize, if only one feature is available
+        if cur_data.shape[1] == 1:
+            unique_values, unique_counts = np.unique(cur_data, return_counts=True)
+            logger.info("Finalize {} Unique values = {}".format(cur_data.shape, len(unique_values)))
+            if len(unique_values) > 1:
+                sum_children, sum_weights = [], []
+                for value in unique_values:
+                    indices = cur_data[:, 0] == value
+                    sum_children.append(_learn_recursive(cur_data[indices], cur_columns, cur_weights[indices]))
+                    sum_weights.append(np.sum(cur_weights[indices]))
+                return PCSum(scope=set(cur_columns),
+                             children=sum_children,
+                             weights=list(sum_weights/np.sum(sum_weights)))
+            if unique_values[0] == nan_value:
+                return OffsetLeaf()
+            return ValueLeaf(scope=set(cur_columns), value=unique_values[0])
 
-    # Check for independent subpopulations
-    split_rows, split_cols = _check_for_independent_rows(data, nan_value=nan_value)
-    if split_rows is not None:
-        logger.info("Split independent subpopulations: {} groups".format(len(split_rows)))
-        children = []
-        weights = []
-        for split_row, split_col in zip(split_rows, split_cols):
-            data_slice = data[split_row, :]
-            data_slice = data_slice[:, split_col]
-            children.append(
-                _learn(data_slice, columns[split_col], min_instances_slice, nan_value, random_state=random_state))
-            weights.append(len(split_row) / data.shape[0])
-        return PCSum(scope=set(columns), children=children, weights=weights)
+        # Check the minimum number of instances
+        if np.sum(cur_weights) <= min_population_size:
+            logger.info("Less than min instances slice: {}".format(len(cur_data)))
+            product_children = []
+            for i in range(cur_data.shape[1]):
+                product_children.append(_learn_recursive(cur_data[:, i].reshape(-1, 1), cur_columns[i], cur_weights))
+            return PCProduct(scope=set(cur_columns), children=product_children)
 
-    # Naive factorization
-    nan_cols, naive_split = _check_columns(data, nan_value)
-    remaining_cols = [i for i in range(data.shape[1]) if i not in nan_cols and i not in naive_split]
-    if len(naive_split) > 0:
-        logger.info("Found {} constant attributes".format(naive_split))
-        children = [_learn(data[:, col].reshape(-1, 1), columns[col:col + 1], min_instances_slice, nan_value,
-                           random_state=random_state) for col in naive_split]
-        if len(remaining_cols) > 0:
-            remaining_data = data[:, remaining_cols]
-            non_null_rows = [row for row in range(remaining_data.shape[0]) if
-                             not np.all(remaining_data[row] == nan_value)]
-            if len(non_null_rows) < remaining_data.shape[0]:
-                remaining_data = remaining_data[non_null_rows, :]
-                sum_children = [OffsetLeaf(),
-                                _learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value,
-                                       random_state=random_state)]
-                sum_weights = [(data.shape[0] - len(non_null_rows)) / data.shape[0], len(non_null_rows) / data.shape[0]]
-                children.append(PCSum(children=sum_children, weights=sum_weights))
-            else:
-                children.append(_learn(remaining_data, columns[remaining_cols], min_instances_slice, nan_value,
-                                       random_state=random_state))
+        # Check for independent populations
+        split_rows, split_cols = _check_for_independent_rows(cur_data, nan_value=nan_value)
+        if split_rows is not None:
+            logger.info("Split independent subpopulations: {} groups".format(len(split_rows)))
+            sum_children, sum_weights = [], []
+            for split_row, split_col in zip(split_rows, split_cols):
+                data_slice = cur_data[split_row, :]
+                data_slice = data_slice[:, split_col]
+                sum_children.append(_learn_recursive(data_slice, cur_columns[split_col], cur_weights[split_row]))
+                sum_weights.append(np.sum(cur_weights[split_row]))
+            return PCSum(scope=set(cur_columns), children=sum_children, weights=list(sum_weights/np.sum(sum_weights)))
 
-        return PCProduct(scope=set(columns[remaining_cols]), children=children)
+        # Naive factorization
+        nan_cols, naive_split = _check_columns(cur_data, nan_value)
+        if len(naive_split) > 0:
+            logger.info("Found {} constant attributes".format(naive_split))
 
-    # Perform clustering
-    clusters = KMeans(n_clusters=2, n_init='auto', random_state=random_state).fit_predict(data)
-    cluster_indices = [np.arange(len(clusters))[clusters == i] for i in range(2)]
-    logger.info("Found clusters: {}".format(len(cluster_indices)))
+            # Compute the circuit for the columns with naive values
+            product_children = []
+            for col in naive_split:
+                product_children.append(_learn_recursive(cur_data[:, col:col + 1],
+                                                         cur_columns[col:col + 1],
+                                                         cur_weights))
 
-    children = []
-    weights = []
-    for ind in cluster_indices:
-        cluster_data = data[ind]
-        nan_cols, _ = _check_columns(cluster_data, nan_value)
-        remaining_cols = [i for i in range(data.shape[1]) if i not in nan_cols]
-        cluster_data = cluster_data[:, remaining_cols]
-        children.append(
-            _learn(cluster_data, columns[remaining_cols], min_instances_slice, nan_value, random_state=random_state))
-        weights.append(len(cluster_data) / len(data))
+            # Compute the circuit for the remaining columns
+            remaining_cols = [i for i in range(cur_data.shape[1]) if i not in nan_cols and i not in naive_split]
+            if len(remaining_cols) > 0:
+                data_slice = cur_data[:, remaining_cols]
+                nan_row_mask = np.array([np.all(row == nan_value) for row in data_slice])
+                if np.sum(nan_row_mask) < data_slice.shape[0]:
+                    data_slice = data_slice[~nan_row_mask, :]
+                    child = _learn_recursive(data_slice, cur_columns[remaining_cols], cur_weights[~nan_row_mask])
+                    sum_children = [OffsetLeaf(), child]
+                    sum_weights = [np.sum(cur_weights[nan_row_mask]), np.sum(cur_weights[~nan_row_mask])]
+                    product_children.append(PCSum(children=sum_children, weights=list(sum_weights/np.sum(sum_weights))))
 
-    return PCSum(scope=set(columns), children=children, weights=weights)
+            return PCProduct(scope=set(cur_columns[remaining_cols]), children=product_children)
+
+        # Perform clustering
+        clusters = KMeans(n_clusters=2, n_init='auto').fit_predict(cur_data, sample_weight=cur_weights)
+        cluster_indices = [np.arange(len(clusters))[clusters == i] for i in range(2)]
+        logger.info("Found clusters: {}".format(len(cluster_indices)))
+
+        sum_children = []
+        sum_weights = []
+        for ind in cluster_indices:
+            cluster_data = cur_data[ind]
+            cluster_weights = cur_weights[ind]
+            nan_cols, _ = _check_columns(cluster_data, nan_value)
+            remaining_cols = [i for i in range(cur_data.shape[1]) if i not in nan_cols]
+            cluster_data = cluster_data[:, remaining_cols]
+            sum_children.append(_learn_recursive(cluster_data, cur_columns[remaining_cols], cluster_weights))
+            sum_weights.append(np.sum(cluster_weights))
+
+        return PCSum(scope=set(cur_columns), children=sum_children, weights=list(sum_weights/np.sum(sum_weights)))
+
+    return _learn_recursive(cur_data=data, cur_columns=columns, cur_weights=weights)
 
 
-def learn_matrix(instances: np.ndarray, columns: list, min_instances_slice: int = 1,
+def learn_matrix(instances: np.ndarray,
+                 columns: list,
+                 weights: list[float] = None,
+                 min_population_size: float = 0.01,
                  nan_value: object = 1000000) -> PCNode:
     """
     Learns a circuit from a structured dataset. The growing of the structure will be stopped if less than
-    min_instances_slice instances are available. The nan_value is the placeholder for values which are unknown.
+    min_population_size is available. The nan_value is the placeholder for values which are unknown.
     """
     df = pd.DataFrame(instances)
     if nan_value in df.values:
         raise Exception("Nan-value exists in data. Use a different one.")
     df = df.fillna(nan_value)
-    pc = _learn(df.to_numpy(), np.array(columns), min_instances_slice, nan_value)
+    if weights is None:
+        weights = np.array([1/len(instances) for _ in range(len(instances))])
+    pc = _learn(df.to_numpy(), np.array(columns), np.array(weights), min_population_size, nan_value)
     pc_basics.update_scope(pc)
     return pc_prune.contract(pc)
 
 
-def learn_dict(instances: list[dict], min_instances_slice: int = 1, nan_value: object = 10000000) -> PCNode:
+def learn_dict(instances: list[dict],
+               weights: list[float] = None,
+               min_population_size: float = 0.01,
+               nan_value: object = 10000000) -> PCNode:
     """
     Learns a circuit from a list of dictionaries. The growing of the structure will be stopped if less than
-    min_instances_slice instances are available. The nan_value is the placeholder for values which are unknown.
+    min_population_size is available. The nan_value is the placeholder for values which are unknown.
     """
     df = pd.DataFrame(instances)
     if nan_value in df.values:
         raise Exception("Nan-value exists in data. Use a different one.")
     df = df.fillna(nan_value)
-    pc = _learn(df.to_numpy(), np.array(df.columns), min_instances_slice, nan_value)
+    if weights is None:
+        weights = np.array([1/len(instances) for _ in range(len(instances))])
+    pc = _learn(df.to_numpy(), np.array(df.columns), np.array(weights), min_population_size, nan_value)
     pc_basics.update_scope(pc)
     return pc_prune.contract(pc)
 
@@ -231,3 +256,9 @@ def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float) -> PCSum:
         weights=[size1 / (size1 + size2), size2 / (size1 + size2)],
         scope=set.union(pc1.scope, pc2.scope)
     )
+
+
+def relearn(pc, min_population_size: float = 0.01, min_instances_slice: int = 1):
+    """Relearns the structure of the circuit."""
+    #todo
+    pass

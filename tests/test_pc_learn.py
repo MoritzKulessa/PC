@@ -74,8 +74,8 @@ class TestLearning(unittest.TestCase):
         # Get data
         instances = get_data()
 
-        # Check for parameter minimum instances slice equals 1
-        pc = pc_learn.learn_dict(instances, min_instances_slice=1)
+        # Check for parameter min_population_size equals 0.01
+        pc = pc_learn.learn_dict(instances, min_population_size=0.01)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)
@@ -93,9 +93,9 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.3, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
         self.assertAlmostEqual(0.1, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
 
-        # Check for parameter minimum instances slice equals 2-10
+        # Check for parameter min_population_size equals 0.2 - 1.0
         for i in range(2, 11):
-            pc = pc_learn.learn_dict(instances, min_instances_slice=i)
+            pc = pc_learn.learn_dict(instances, min_population_size=i/10)
             # Check structure
             self.assertTrue(pc is not None)
             pc_basics.check_validity(pc)
@@ -106,8 +106,8 @@ class TestLearning(unittest.TestCase):
             self.assertAlmostEqual(0.2, pc_query.inference(pc, {"d": True}))
             self.assertAlmostEqual(0.1, pc_query.inference(pc, {"e": True}))
 
-        # Check for parameter minimum instances slice equals the dataset size plus one
-        pc = pc_learn.learn_dict(instances, min_instances_slice=11)
+        # Check for parameter min_population_size equals the dataset size
+        pc = pc_learn.learn_dict(instances, min_population_size=1.0)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)
@@ -125,6 +125,39 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.12, pc_query.inference(pc, {"c": True, "d": True}))
         self.assertAlmostEqual(0.216, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
         self.assertAlmostEqual(0.0432, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
+
+        # Check learning with weights
+        pc = pc_learn.learn_dict(instances, min_population_size=0.01, weights=[0.09]*9 + [0.19])
+        # Check structure
+        self.assertTrue(pc is not None)
+        pc_basics.check_validity(pc)
+
+        # Check all probabilities
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"a": True}))
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"b": True}))
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"c": True}))
+        self.assertAlmostEqual(0.18, pc_query.inference(pc, {"d": True}))
+        self.assertAlmostEqual(0.19, pc_query.inference(pc, {"e": True}))
+        self.assertAlmostEqual(0.36, pc_query.inference(pc, {"a": True, "b": True}))
+        self.assertAlmostEqual(0.27, pc_query.inference(pc, {"a": True, "c": True}))
+        self.assertAlmostEqual(0.09, pc_query.inference(pc, {"a": True, "d": True}))
+        self.assertAlmostEqual(0.45, pc_query.inference(pc, {"b": True, "c": True}))
+        self.assertAlmostEqual(0.18, pc_query.inference(pc, {"c": True, "d": True}))
+        self.assertAlmostEqual(0.27, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
+        self.assertAlmostEqual(0.09, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
+
+        # Check for parameter min_population_size equals 0.2 - 1.0
+        for i in range(2, 11):
+            pc = pc_learn.learn_dict(instances, min_population_size=i / 10, weights=[0.09]*9 + [0.19])
+            # Check structure
+            self.assertTrue(pc is not None)
+            pc_basics.check_validity(pc)
+            # Ensure that single probabilities are correct
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"a": True}))
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"b": True}))
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"c": True}))
+            self.assertAlmostEqual(0.18, pc_query.inference(pc, {"d": True}))
+            self.assertAlmostEqual(0.19, pc_query.inference(pc, {"e": True}))
 
     def test_learn_matrix(self):
         """ Tests for the method learn_matrix(...)"""
@@ -139,8 +172,8 @@ class TestLearning(unittest.TestCase):
                 if attribute in inst:
                     matrix[i][j] = inst[attribute]
 
-        # Check for parameter minimum instances slice equals 1
-        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=1)
+        # Check for parameter min_population_size equals 1
+        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_population_size=0.01)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)
@@ -158,9 +191,9 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.3, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
         self.assertAlmostEqual(0.1, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
 
-        # Check for parameter minimum instances slice equals 2-10
+        # Check for parameter min_population_size equals 0.2 - 1.0
         for i in range(2, 11):
-            pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=i)
+            pc = pc_learn.learn_matrix(matrix, columns=attributes, min_population_size=i/10)
             # Check structure
             self.assertTrue(pc is not None)
             pc_basics.check_validity(pc)
@@ -171,8 +204,8 @@ class TestLearning(unittest.TestCase):
             self.assertAlmostEqual(0.2, pc_query.inference(pc, {"d": True}))
             self.assertAlmostEqual(0.1, pc_query.inference(pc, {"e": True}))
 
-        # Check for parameter minimum instances slice equals the dataset size plus one
-        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_instances_slice=11)
+        # Check for parameter min_population_size equals the dataset size
+        pc = pc_learn.learn_matrix(matrix, columns=attributes, min_population_size=1.0)
         # Check structure
         self.assertTrue(pc is not None)
         pc_basics.check_validity(pc)
@@ -190,6 +223,45 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.12, pc_query.inference(pc, {"c": True, "d": True}))
         self.assertAlmostEqual(0.216, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
         self.assertAlmostEqual(0.0432, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
+
+        # Check learning with weights
+        pc = pc_learn.learn_matrix(matrix,
+                                   columns=attributes,
+                                   min_population_size=0.01,
+                                   weights=[0.09] * 9 + [0.19])
+        # Check structure
+        self.assertTrue(pc is not None)
+        pc_basics.check_validity(pc)
+
+        # Check all probabilities
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"a": True}))
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"b": True}))
+        self.assertAlmostEqual(0.54, pc_query.inference(pc, {"c": True}))
+        self.assertAlmostEqual(0.18, pc_query.inference(pc, {"d": True}))
+        self.assertAlmostEqual(0.19, pc_query.inference(pc, {"e": True}))
+        self.assertAlmostEqual(0.36, pc_query.inference(pc, {"a": True, "b": True}))
+        self.assertAlmostEqual(0.27, pc_query.inference(pc, {"a": True, "c": True}))
+        self.assertAlmostEqual(0.09, pc_query.inference(pc, {"a": True, "d": True}))
+        self.assertAlmostEqual(0.45, pc_query.inference(pc, {"b": True, "c": True}))
+        self.assertAlmostEqual(0.18, pc_query.inference(pc, {"c": True, "d": True}))
+        self.assertAlmostEqual(0.27, pc_query.inference(pc, {"a": True, "b": True, "c": True}))
+        self.assertAlmostEqual(0.09, pc_query.inference(pc, {"a": True, "b": True, "c": True, "d": True}))
+
+        # Check for parameter min_population_size equals 0.2 - 1.0
+        for i in range(2, 11):
+            pc = pc_learn.learn_matrix(matrix,
+                                       columns=attributes,
+                                       min_population_size=i / 10,
+                                       weights=[0.09] * 9 + [0.19])
+            # Check structure
+            self.assertTrue(pc is not None)
+            pc_basics.check_validity(pc)
+            # Ensure that single probabilities are correct
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"a": True}))
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"b": True}))
+            self.assertAlmostEqual(0.54, pc_query.inference(pc, {"c": True}))
+            self.assertAlmostEqual(0.18, pc_query.inference(pc, {"d": True}))
+            self.assertAlmostEqual(0.19, pc_query.inference(pc, {"e": True}))
 
 
 if __name__ == '__main__':

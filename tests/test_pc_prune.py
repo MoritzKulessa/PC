@@ -227,6 +227,36 @@ class TestPruning(unittest.TestCase):
         self.assertAlmostEqual(0.5, pc_query.inference(cond_pc, {"equipment": "radio"}))
         self.assertAlmostEqual(0.5, pc_query.inference(cond_pc, {"car": "VW", "equipment": "radio"}))
 
+    def test_prune_leaves(self):
+        """Tests for the method prune_leaves(...)"""
+
+        # Check for the example circuit
+        pc = get_example_pc()
+        pc_prune.prune_leaves(pc)
+        self.assertEqual(pc.children[0].children[1].children[0], pc.children[1].children[1])
+
+        # Dummy data
+        leaf1 = ValueLeaf(scope={"a"}, value="a")
+        leaf2 = ValueLeaf(scope={"a"}, value="a")
+        leaf3 = ValueLeaf(scope={"a"}, value="b")
+        leaf4 = ValueLeaf(scope={"c"}, value="c")
+
+        # Check single sum node with same leaves
+        pc = PCSum(scope={"a", "c"}, children=[leaf1, leaf2, leaf3, leaf4], weights=[0.5, 0.25, 0.2, 0.05])
+        pc_prune.prune_leaves(pc)
+        self.assertEqual(pc.children[0], pc.children[1])
+        self.assertNotEqual(pc.children[0], pc.children[2])
+        self.assertNotEqual(pc.children[0], pc.children[3])
+        self.assertNotEqual(pc.children[1], pc.children[2])
+        self.assertNotEqual(pc.children[1], pc.children[3])
+        self.assertNotEqual(pc.children[2], pc.children[3])
+
+        # Check single sum node with same leaves
+        s1 = PCSum(scope={"a"}, children=[leaf1, leaf3], weights=[0.5, 0.5])
+        pc = PCSum(scope={"a"}, children=[s1, leaf2], weights=[0.5, 0.5])
+        pc_prune.prune_leaves(pc)
+        self.assertEqual(pc.children[1], pc.children[0].children[0])
+
 
 if __name__ == '__main__':
     unittest.main()

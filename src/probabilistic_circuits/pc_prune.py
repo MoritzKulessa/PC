@@ -169,3 +169,28 @@ def condition(pc: PCNode, evidence: dict, remove_conditioned_nodes: bool = True)
         pc_basics.update_scope(cond_structure)
         cond_structure = contract(cond_structure)
     return cond_prob, cond_structure
+
+
+def prune_leaves(pc: PCNode) -> None:
+    """Prunes duplicated leaves."""
+    prune_dict: dict[frozenset[object], list[PCLeaf]] = {}
+
+    def _prune_leaves(node: PCNode):
+        for i in range(len(node.children)):
+            child = node.children[i]
+            if isinstance(child, PCLeaf):
+                key = frozenset(child.scope)
+                if key in prune_dict:
+                    found_leaf = None
+                    for leaf in prune_dict[key]:
+                        if leaf.equals(child):
+                            found_leaf = leaf
+                            break
+                    if found_leaf is not None:
+                        node.children[i] = found_leaf
+                    else:
+                        prune_dict[key].append(child)
+                else:
+                    prune_dict[key] = [child]
+
+    pc_basics.apply(pc, _prune_leaves, node_type=PCInnerNode)

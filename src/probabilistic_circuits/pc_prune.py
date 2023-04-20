@@ -175,7 +175,7 @@ def prune_leaves(pc: PCNode) -> None:
     """Prunes duplicated leaves."""
     prune_dict: dict[frozenset[object], list[PCLeaf]] = {}
 
-    def _prune_leaves(node: PCNode):
+    def _prune_leaves(node: PCNode) -> None:
         for i in range(len(node.children)):
             child = node.children[i]
             if isinstance(child, PCLeaf):

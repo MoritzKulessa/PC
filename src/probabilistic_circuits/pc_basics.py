@@ -1,7 +1,8 @@
-import numpy as np
+import itertools
 import collections
+import numpy as np
 from typing import Type, Callable
-from probabilistic_circuits.pc_nodes import PCNode, PCInnerNode, PCSum, PCProduct
+from probabilistic_circuits.pc_nodes import PCNode, PCInnerNode, PCSum, PCProduct, PCLeaf, OffsetLeaf
 
 
 def apply(pc: PCNode, func: Callable[[PCNode], None], node_type: Type[PCNode] = PCNode) -> None:
@@ -67,3 +68,45 @@ def check_validity(pc: PCNode) -> None:
             raise Exception("Unknown node: " + str(node))
 
     apply(pc, _check_validity, node_type=PCInnerNode)
+
+
+def get_populations(pc: PCNode, min_population_size: float = 0.0) -> list[tuple[float, set[PCNode]]]:
+    """Returns all populations and their size of the circuit which satisfy the specified minimum population size."""
+    assert (0.0 <= min_population_size <= 1.0)
+
+    def _get_populations_recursive(cur_node: PCNode, cur_population_size: float) -> list[tuple[float, set[PCNode]]]:
+        if cur_population_size < min_population_size:
+            return []
+
+        if isinstance(cur_node, PCLeaf):
+            if isinstance(cur_node, OffsetLeaf):
+                return [(1.0, set())]
+            return [(1.0, {cur_node})]
+
+        if isinstance(cur_node, PCSum):
+            collected_subs = []
+            for i, child in enumerate(cur_node.children):
+                weight = cur_node.weights[i]
+                retrieved_subs = _get_populations_recursive(child, cur_population_size * weight)
+                for probability, nodes in retrieved_subs:
+                    new_probability = weight * probability
+                    if min_population_size <= new_probability:
+                        collected_subs.append((new_probability, nodes))
+            return collected_subs
+
+        if isinstance(cur_node, PCProduct):
+            results = [_get_populations_recursive(child, cur_population_size) for child in cur_node.children]
+            collected_subs = []
+            for combo in list(itertools.product(*results)):
+                new_probability = 1.0
+                new_nodes = set()
+                for [p, nodes] in combo:
+                    new_probability *= p
+                    new_nodes.update(nodes)
+                if min_population_size <= new_probability:
+                    collected_subs.append((new_probability, new_nodes))
+            return collected_subs
+
+        raise Exception("Invalid node: " + str(cur_node))
+
+    return _get_populations_recursive(pc, 1.0)

@@ -182,6 +182,43 @@ class TestBasics(unittest.TestCase):
         # Assert no AssertionError
         pc_basics.check_validity(pc)
 
+    def test_get_populations(self):
+        """Tests for the method get_populations(...)."""
+        pc = get_example_pc()
+
+        def _check_population(pops: list[tuple[float, set[PCNode]]], pop: dict, pop_size: float) -> bool:
+            pop_string = ", ".join(sorted([str(k) + "=" + str(v) for k, v in pop.items()]))
+            for cur_pop_size, cur_pop in pops:
+                cur_pop_strings = []
+                for node in cur_pop:
+                    assert (isinstance(node, ValueLeaf))
+                    cur_pop_strings.append(str(list(node.scope)[0]) + "=" + str(node.value))
+                cur_pop_string = ", ".join(sorted(cur_pop_strings))
+                if pop_string == cur_pop_string:
+                    self.assertAlmostEqual(cur_pop_size, pop_size)
+                    return True
+            return False
+
+        # Check min_population_size = 0.0
+        populations = pc_basics.get_populations(pc, min_population_size=0.0)
+        self.assertEqual(8, len(populations))
+        self.assertTrue(_check_population(populations, {"car": "BMW"}, 0.075))
+        self.assertTrue(_check_population(populations, {"car": "Mercedes"}, 0.1))
+        self.assertTrue(_check_population(populations, {"car": "VW"}, 0.075))
+        self.assertTrue(_check_population(populations, {"car": "BMW", "equipment": "radio"}, 0.075))
+        self.assertTrue(_check_population(populations, {"car": "Mercedes", "equipment": "radio"}, 0.1))
+        self.assertTrue(_check_population(populations, {"car": "VW", "equipment": "radio"}, 0.075))
+        self.assertTrue(_check_population(populations, {"airplane": "Airbus", "equipment": "radio"}, 0.25))
+        self.assertTrue(_check_population(populations, {"airplane": "Boing", "equipment": "radio"}, 0.25))
+
+        # Check min_population_size = 0.08
+        populations = pc_basics.get_populations(pc, min_population_size=0.08)
+        self.assertEqual(4, len(populations))
+        self.assertTrue(_check_population(populations, {"car": "Mercedes"}, 0.1))
+        self.assertTrue(_check_population(populations, {"car": "Mercedes", "equipment": "radio"}, 0.1))
+        self.assertTrue(_check_population(populations, {"airplane": "Airbus", "equipment": "radio"}, 0.25))
+        self.assertTrue(_check_population(populations, {"airplane": "Boing", "equipment": "radio"}, 0.25))
+
 
 if __name__ == '__main__':
     unittest.main()

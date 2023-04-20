@@ -46,6 +46,9 @@ class PCLeaf(PCNode, ABC):
     @abstractmethod
     def mpe(self) -> dict[object, object]:
         """Returns the most likely value of the implemented probability distribution."""
+    @abstractmethod
+    def equals(self, other: object) -> bool:
+        """Returns True if the current object is identical to the other object."""
 
 
 class OffsetLeaf(PCLeaf):
@@ -65,6 +68,9 @@ class OffsetLeaf(PCLeaf):
 
     def mpe(self) -> dict[object, object]:
         return {}
+
+    def equals(self, other: object) -> bool:
+        return isinstance(other, OffsetLeaf)
 
 
 class ValueLeaf(PCLeaf):
@@ -94,3 +100,8 @@ class ValueLeaf(PCLeaf):
     def mpe(self) -> dict[object, object]:
         s, = self.scope
         return {s: self.value}
+
+    def equals(self, other: object) -> bool:
+        if isinstance(other, ValueLeaf):
+            return self.scope == other.scope and self.value == other.value
+        return False

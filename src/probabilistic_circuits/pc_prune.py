@@ -194,3 +194,23 @@ def prune_leaves(pc: PCNode) -> None:
                     prune_dict[key] = [child]
 
     pc_basics.apply(pc, _prune_leaves, node_type=PCInnerNode)
+
+
+def merge_children(pc: PCNode) -> None:
+    """Merges children of sum nodes which are identical (product nodes do not have identical children)."""
+    def _merge_children(node: PCNode) -> None:
+        if len(set(node.children)) < len(node.children):
+            child_dict = {}
+            for i, child in enumerate(node.children):
+                if child not in child_dict:
+                    child_dict[child] = []
+                child_dict[child].append(i)
+            sum_children, sum_weights = [], []
+            for child, indices in child_dict.items():
+                sum_children.append(child)
+                sum_weights.append(sum([node.weights[i] for i in indices]))
+            node.children = sum_children
+            node.weights = sum_weights
+
+    pc_basics.apply(pc, _merge_children, node_type=PCSum)
+

@@ -257,6 +257,37 @@ class TestPruning(unittest.TestCase):
         pc_prune.prune_leaves(pc)
         self.assertEqual(pc.children[1], pc.children[0].children[0])
 
+    def test_merge_children(self):
+        """Tests for the method merge_children(...)"""
+
+        # Dummy data
+        leaf1 = ValueLeaf(scope={"a"}, value="a")
+        leaf2 = ValueLeaf(scope={"a"}, value="b")
+        leaf3 = ValueLeaf(scope={"c"}, value="c")
+        leaf4 = ValueLeaf(scope={"d"}, value="d")
+
+        # Check merging with identical nodes
+        pc = PCSum(scope={"a", "c"}, children=[leaf1, leaf1, leaf2, leaf2, leaf3], weights=[0.5, 0.25, 0.1, 0.1, 0.05])
+        pc_prune.merge_children(pc)
+        self.assertEqual(3, len(pc.children))
+        index_leaf1 = [i for i, child in enumerate(pc.children) if child == leaf1][0]
+        self.assertAlmostEqual(0.75, pc.weights[index_leaf1])
+        index_leaf2 = [i for i, child in enumerate(pc.children) if child == leaf2][0]
+        self.assertAlmostEqual(0.2, pc.weights[index_leaf2])
+        index_leaf3 = [i for i, child in enumerate(pc.children) if child == leaf3][0]
+        self.assertAlmostEqual(0.05, pc.weights[index_leaf3])
+
+        # Check merging without identical nodes
+        pc = PCSum(scope={"a", "c", "d"}, children=[leaf1, leaf3, leaf4], weights=[0.5, 0.3, 0.2])
+        pc_prune.merge_children(pc)
+        self.assertEqual(3, len(pc.children))
+        self.assertEqual(leaf1, pc.children[0])
+        self.assertEqual(leaf3, pc.children[1])
+        self.assertEqual(leaf4, pc.children[2])
+        self.assertEqual(0.5, pc.weights[0])
+        self.assertEqual(0.3, pc.weights[1])
+        self.assertEqual(0.2, pc.weights[2])
+
 
 if __name__ == '__main__':
     unittest.main()

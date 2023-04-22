@@ -70,11 +70,11 @@ def check_validity(pc: PCNode) -> None:
     apply(pc, _check_validity, node_type=PCInnerNode)
 
 
-def get_populations(pc: PCNode, min_population_size: float = 0.0) -> list[tuple[float, set[PCNode]]]:
+def get_populations(pc: PCNode, min_population_size: float = 0.0) -> list[tuple[float, set[PCLeaf]]]:
     """Returns all populations and their size of the circuit which satisfy the specified minimum population size."""
     assert (0.0 <= min_population_size <= 1.0)
 
-    def _get_populations_recursive(cur_node: PCNode, cur_population_size: float) -> list[tuple[float, set[PCNode]]]:
+    def _get_populations_recursive(cur_node: PCNode, cur_population_size: float) -> list[tuple[float, set[PCLeaf]]]:
         if cur_population_size < min_population_size:
             return []
 

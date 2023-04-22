@@ -82,8 +82,8 @@ def get_example_pc():
 
 
 class TestLearning(unittest.TestCase):
-    def test_learn_dict_shallow(self):
-        """ Tests for the method learn_matrix(...)"""
+    def test_learn_shallow(self):
+        """ Tests for the method learn_shallow(...)"""
 
         # Get data
         instances = get_data()
@@ -218,6 +218,48 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.50, pc_query.inference(pc, {"v2": "a", "v3": "a"}))
         self.assertAlmostEqual(0.50, pc_query.inference(pc, {"v1": "a", "v3": "a"}))
         self.assertAlmostEqual(0.25, pc_query.inference(pc, {"v1": "a", "v2": "a", "v3": "a"}))
+
+    def test_relearn(self):
+        """ Tests for the method relearn(...)"""
+
+        # Get data
+        pc = get_example_pc()
+
+        # Test identical rebuild
+        relearned_pc = pc_learn.relearn(pc, extract_min_population_size=0.01, learn_min_population_size=0.01)
+        pc_basics.check_validity(pc)
+        self.assertAlmostEqual(0.150, pc_query.inference(relearned_pc, {"car": "BMW"}))
+        self.assertAlmostEqual(0.200, pc_query.inference(relearned_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.150, pc_query.inference(relearned_pc, {"car": "VW"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.750, pc_query.inference(relearned_pc, {"equipment": "radio"}))
+        self.assertAlmostEqual(0.075, pc_query.inference(relearned_pc, {"car": "BMW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.100, pc_query.inference(relearned_pc, {"car": "Mercedes", "equipment": "radio"}))
+        self.assertAlmostEqual(0.075, pc_query.inference(relearned_pc, {"car": "VW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Airbus", "equipment": "radio"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Boing", "equipment": "radio"}))
+
+        # Test not extract all populations
+        relearn_pc = pc_learn.relearn(pc, extract_min_population_size=0.08, learn_min_population_size=0.01)
+        pc_basics.check_validity(pc)
+        self.assertAlmostEqual(0.20 / 0.7, pc_query.inference(relearn_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.10 / 0.7, pc_query.inference(relearn_pc, {"car": "Mercedes", "equipment": "radio"}))
+        self.assertAlmostEqual(0.25 / 0.7, pc_query.inference(relearn_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(0.25 / 0.7, pc_query.inference(relearn_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.60 / 0.7, pc_query.inference(relearn_pc, {"equipment": "radio"}))
+        self.assertAlmostEqual(0.25 / 0.7, pc_query.inference(relearn_pc, {"airplane": "Airbus", "equipment": "radio"}))
+        self.assertAlmostEqual(0.25 / 0.7, pc_query.inference(relearn_pc, {"airplane": "Boing", "equipment": "radio"}))
+
+        # Test not rebuild complete circuit
+        relearned_pc = pc_learn.relearn(pc, extract_min_population_size=0.01, learn_min_population_size=1.0)
+        pc_basics.check_validity(pc)
+        self.assertAlmostEqual(0.150, pc_query.inference(relearned_pc, {"car": "BMW"}))
+        self.assertAlmostEqual(0.200, pc_query.inference(relearned_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.150, pc_query.inference(relearned_pc, {"car": "VW"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.750, pc_query.inference(relearned_pc, {"equipment": "radio"}))
 
 
 if __name__ == '__main__':

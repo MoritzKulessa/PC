@@ -133,7 +133,8 @@ def _learn(data: np.ndarray,
             logger.info("Less than min instances slice: {}".format(len(cur_data)))
             product_children = []
             for i in range(cur_data.shape[1]):
-                product_children.append(_learn_recursive(cur_data[:, i].reshape(-1, 1), cur_columns[i], cur_weights))
+                product_children.append(
+                    _learn_recursive(cur_data[:, i].reshape(-1, 1), cur_columns[i: i + 1], cur_weights))
             return PCProduct(scope=set(cur_columns), children=product_children)
 
         # Check for independent populations
@@ -215,8 +216,9 @@ def learn(instances: list[dict[object, object]] | np.ndarray | pd.DataFrame,
           min_population_size: float = 0.01,
           nan_value: object = 10000000) -> PCNode:
     """
-    Learns a circuit. If a numpy matrix is given, the columns need to be specified. The growing of the structure will be stopped if less than
-    min_population_size is available. The nan_value is the placeholder for values which are unknown.
+    Learns a circuit. If a numpy matrix is given, the columns need to be specified. The growing of the structure will be
+    stopped if less than min_population_size is available. The nan_value is the placeholder for values which are
+    unknown.
     """
     if isinstance(instances, (np.matrix, np.ndarray)):
         assert (columns is not None)
@@ -269,7 +271,17 @@ def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float) -> PCSum:
     )
 
 
-def relearn(pc, min_population_size: float = 0.01, min_instances_slice: int = 1):
-    """Relearns the structure of the circuit."""
-    #todo
-    pass
+def relearn(pc, extract_min_population_size: float = 0.01, learn_min_population_size: float = 0.01) -> PCNode:
+    """Relearns the structure of the circuit by first extracting the population and then learn over the population."""
+    populations = pc_basics.get_populations(pc, min_population_size=extract_min_population_size)
+
+    weights, instances = [], []
+    for population_size, leaves in populations:
+
+        weights.append(population_size)
+        d = {}
+        for leaf in leaves:
+            d |= leaf.mpe()
+        instances.append(d)
+
+    return learn(instances, weights=weights, min_population_size=learn_min_population_size)

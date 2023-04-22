@@ -113,8 +113,8 @@ def _learn(data: np.ndarray,
 
         # Finalize, if only one feature is available
         if cur_data.shape[1] == 1:
+            logger.debug("Finalize: {}".format(cur_data.shape))
             unique_values = list(set(list(cur_data.flatten())))
-            logger.info("Finalize {} Unique values = {}".format(cur_data.shape, len(unique_values)))
             if len(unique_values) > 1:
                 sum_children, sum_weights = [], []
                 for value in unique_values:
@@ -128,9 +128,9 @@ def _learn(data: np.ndarray,
                 return OffsetLeaf()
             return ValueLeaf(scope=set(cur_columns), value=unique_values[0])
 
-        # Check the minimum number of instances
+        # Check the minimum population size
         if np.sum(cur_weights) <= min_population_size:
-            logger.info("Less than min instances slice: {}".format(len(cur_data)))
+            logger.debug("Population size reached: {}".format(np.sum(cur_weights)))
             product_children = []
             for i in range(cur_data.shape[1]):
                 product_children.append(
@@ -140,7 +140,7 @@ def _learn(data: np.ndarray,
         # Check for independent populations
         split_rows, split_cols = _check_for_independent_rows(cur_data, nan_value=nan_value)
         if split_rows is not None:
-            logger.info("Split independent subpopulations: {} groups".format(len(split_rows)))
+            logger.debug("Independent subpopulations: {}".format(len(split_rows)))
             sum_children, sum_weights = [], []
             for split_row, split_col in zip(split_rows, split_cols):
                 data_slice = cur_data[split_row, :]
@@ -152,7 +152,7 @@ def _learn(data: np.ndarray,
         # Naive factorization
         nan_cols, naive_cols, other_cols = _check_columns(cur_data, nan_value)
         if len(naive_cols) > 0:
-            logger.info("Found {} constant attributes".format(naive_cols))
+            logger.debug("Naive factorization: {}".format(len(naive_cols)))
 
             # Compute the circuit for the columns with naive values
             product_children = []
@@ -191,9 +191,10 @@ def _learn(data: np.ndarray,
             cluster_data = cur_data
 
         # Perform clustering
+
         clusters = KMeans(n_clusters=2, n_init='auto').fit_predict(cluster_data, sample_weight=cur_weights)
         cluster_indices = [np.arange(len(clusters))[clusters == i] for i in range(2)]
-        logger.info("Found clusters: {}".format(len(cluster_indices)))
+        logger.debug("Cluster: {}".format([len(ind) for ind in cluster_indices]))
 
         sum_children = []
         sum_weights = []
@@ -231,8 +232,7 @@ def learn(instances: list[dict[object, object]] | np.ndarray | pd.DataFrame,
     df = df.fillna(nan_value)
     if weights is None:
         weights = np.array([1 / len(instances) for _ in range(len(instances))])
-    categorical_columns = df.select_dtypes(exclude=["number", "bool_"]).columns
-    # cat_col_ids = [i for i, col in enumerate(df.columns) if col in categorical_columns]
+    categorical_columns = list(df.select_dtypes(exclude=["number", "bool_"]).columns)
     pc = _learn(data=df.to_numpy(),
                 columns=np.array(df.columns),
                 weights=np.array(weights),

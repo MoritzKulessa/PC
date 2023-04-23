@@ -191,7 +191,6 @@ def _learn(data: np.ndarray,
             cluster_data = cur_data
 
         # Perform clustering
-
         clusters = KMeans(n_clusters=2, n_init='auto').fit_predict(cluster_data, sample_weight=cur_weights)
         cluster_indices = [np.arange(len(clusters))[clusters == i] for i in range(2)]
         logger.debug("Cluster: {}".format([len(ind) for ind in cluster_indices]))
@@ -212,7 +211,7 @@ def _learn(data: np.ndarray,
 
 
 def learn(instances: list[dict[object, object]] | np.ndarray | pd.DataFrame,
-          columns: list[str] = None,
+          columns: list[object] = None,
           weights: list[float] = None,
           min_population_size: float = 0.01,
           nan_value: object = 10000000) -> PCNode:
@@ -271,17 +270,67 @@ def combine(pc1: PCNode, size1: float, pc2: PCNode, size2: float) -> PCSum:
     )
 
 
-def relearn(pc, extract_min_population_size: float = 0.01, learn_min_population_size: float = 0.01) -> PCNode:
+def relearn(pc: PCNode, extract_min_population_size: float = 0.01, learn_min_population_size: float = 0.01) -> PCNode:
     """Relearns the structure of the circuit by first extracting the population and then learn over the population."""
     populations = pc_basics.get_populations(pc, min_population_size=extract_min_population_size)
 
     weights, instances = [], []
     for population_size, leaves in populations:
-
         weights.append(population_size)
         d = {}
         for leaf in leaves:
             d |= leaf.mpe()
         instances.append(d)
 
+    logger.info("Forgot {}% of populations.".format(round(1 - np.sum(weights), 4)))
+
     return learn(instances, weights=weights, min_population_size=learn_min_population_size)
+
+
+def update(pc: PCNode,
+           instances: list[dict[object, object]] | np.ndarray | pd.DataFrame,
+           columns: list[object] = None,
+           weights: list[float] = None,
+           learning_rate: float = 0.05,
+           extract_min_population_size: float = 0.001,
+           learn_min_population_size: float = 0.01) -> PCNode:
+    """
+    Updates the structure of the circuit by first extracting the population, adding the instances and then relearn
+    the circuit.
+    """
+    assert (0.0 < learning_rate)
+
+    # Parse instances into a dataframe
+    if isinstance(instances, (np.matrix, np.ndarray)):
+        assert (columns is not None)
+        df = pd.DataFrame(instances, columns=columns)
+    else:
+        assert (columns is None)
+        df = pd.DataFrame(instances)
+
+    # Extract populations
+    populations = pc_basics.get_populations(pc, min_population_size=extract_min_population_size)
+    pc_weights, pc_instances = [], []
+    for population_size, leaves in populations:
+        pc_weights.append(population_size)
+        d = {}
+        for leaf in leaves:
+            d |= leaf.mpe()
+        pc_instances.append(d)
+
+    logger.info("Forgot {}% of populations.".format(round(1 - np.sum(pc_weights), 4)))
+
+    # Concat the populations with the instances
+    df = pd.concat([pd.DataFrame(pc_instances), df], ignore_index=True)
+
+    # Concat weights
+    sum_pc_weights = np.sum(pc_weights)
+    instance_weight = (sum_pc_weights * learning_rate) / len(instances)
+    if weights is None:
+        weights = [instance_weight] * len(instances)
+    else:
+        weights = list((weights / np.sum(weights)) * instance_weight)
+    weights = pc_weights + weights
+
+    # Learn over the combined dataset
+    return learn(df, weights=weights, min_population_size=learn_min_population_size)

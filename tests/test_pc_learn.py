@@ -222,7 +222,7 @@ class TestLearning(unittest.TestCase):
     def test_relearn(self):
         """ Tests for the method relearn(...)"""
 
-        # Get data
+        # Get pc
         pc = get_example_pc()
 
         # Test identical rebuild
@@ -260,6 +260,75 @@ class TestLearning(unittest.TestCase):
         self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Airbus"}))
         self.assertAlmostEqual(0.250, pc_query.inference(relearned_pc, {"airplane": "Boing"}))
         self.assertAlmostEqual(0.750, pc_query.inference(relearned_pc, {"equipment": "radio"}))
+
+    def test_update(self):
+        """ Tests for the method update(...)"""
+
+        # Get data
+        pc = get_example_pc()
+        instances = get_data()
+
+        # Test equal weight update
+        updated_pc = pc_learn.update(pc,
+                                     instances,
+                                     learning_rate=1.0,
+                                     extract_min_population_size=0.01,
+                                     learn_min_population_size=0.01)
+        pc_basics.check_validity(updated_pc)
+        self.assertAlmostEqual(0.150 / 2, pc_query.inference(updated_pc, {"car": "BMW"}))
+        self.assertAlmostEqual(0.200 / 2, pc_query.inference(updated_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.150 / 2, pc_query.inference(updated_pc, {"car": "VW"}))
+        self.assertAlmostEqual(0.250 / 2, pc_query.inference(updated_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(0.250 / 2, pc_query.inference(updated_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.750 / 2, pc_query.inference(updated_pc, {"equipment": "radio"}))
+        self.assertAlmostEqual(0.075 / 2, pc_query.inference(updated_pc, {"car": "BMW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.100 / 2, pc_query.inference(updated_pc, {"car": "Mercedes", "equipment": "radio"}))
+        self.assertAlmostEqual(0.075 / 2, pc_query.inference(updated_pc, {"car": "VW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.250 / 2, pc_query.inference(updated_pc, {"airplane": "Airbus", "equipment": "radio"}))
+        self.assertAlmostEqual(0.250 / 2, pc_query.inference(updated_pc, {"airplane": "Boing", "equipment": "radio"}))
+        self.assertAlmostEqual(0.6 / 2, pc_query.inference(updated_pc, {"a": True}))
+        self.assertAlmostEqual(0.6 / 2, pc_query.inference(updated_pc, {"b": True}))
+        self.assertAlmostEqual(0.6 / 2, pc_query.inference(updated_pc, {"c": True}))
+        self.assertAlmostEqual(0.2 / 2, pc_query.inference(updated_pc, {"d": True}))
+        self.assertAlmostEqual(0.1 / 2, pc_query.inference(updated_pc, {"e": True}))
+        self.assertAlmostEqual(0.4 / 2, pc_query.inference(updated_pc, {"a": True, "b": True}))
+        self.assertAlmostEqual(0.3 / 2, pc_query.inference(updated_pc, {"a": True, "c": True}))
+        self.assertAlmostEqual(0.1 / 2, pc_query.inference(updated_pc, {"a": True, "d": True}))
+        self.assertAlmostEqual(0.5 / 2, pc_query.inference(updated_pc, {"b": True, "c": True}))
+        self.assertAlmostEqual(0.2 / 2, pc_query.inference(updated_pc, {"c": True, "d": True}))
+        self.assertAlmostEqual(0.3 / 2, pc_query.inference(updated_pc, {"a": True, "b": True, "c": True}))
+        self.assertAlmostEqual(0.1 / 2, pc_query.inference(updated_pc, {"a": True, "b": True, "c": True, "d": True}))
+
+        # Test quarter weight update
+        updated_pc = pc_learn.update(pc,
+                                     instances,
+                                     learning_rate=0.25,
+                                     extract_min_population_size=0.01,
+                                     learn_min_population_size=0.01)
+        pc_basics.check_validity(updated_pc)
+        self.assertAlmostEqual(0.150 * 0.8, pc_query.inference(updated_pc, {"car": "BMW"}))
+        self.assertAlmostEqual(0.200 * 0.8, pc_query.inference(updated_pc, {"car": "Mercedes"}))
+        self.assertAlmostEqual(0.150 * 0.8, pc_query.inference(updated_pc, {"car": "VW"}))
+        self.assertAlmostEqual(0.250 * 0.8, pc_query.inference(updated_pc, {"airplane": "Airbus"}))
+        self.assertAlmostEqual(0.250 * 0.8, pc_query.inference(updated_pc, {"airplane": "Boing"}))
+        self.assertAlmostEqual(0.750 * 0.8, pc_query.inference(updated_pc, {"equipment": "radio"}))
+        self.assertAlmostEqual(0.075 * 0.8, pc_query.inference(updated_pc, {"car": "BMW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.100 * 0.8, pc_query.inference(updated_pc, {"car": "Mercedes", "equipment": "radio"}))
+        self.assertAlmostEqual(0.075 * 0.8, pc_query.inference(updated_pc, {"car": "VW", "equipment": "radio"}))
+        self.assertAlmostEqual(0.25 * 0.8, pc_query.inference(updated_pc, {"airplane": "Airbus", "equipment": "radio"}))
+        self.assertAlmostEqual(0.250 * 0.8, pc_query.inference(updated_pc, {"airplane": "Boing", "equipment": "radio"}))
+        self.assertAlmostEqual(0.6 * 0.2, pc_query.inference(updated_pc, {"a": True}))
+        self.assertAlmostEqual(0.6 * 0.2, pc_query.inference(updated_pc, {"b": True}))
+        self.assertAlmostEqual(0.6 * 0.2, pc_query.inference(updated_pc, {"c": True}))
+        self.assertAlmostEqual(0.2 * 0.2, pc_query.inference(updated_pc, {"d": True}))
+        self.assertAlmostEqual(0.1 * 0.2, pc_query.inference(updated_pc, {"e": True}))
+        self.assertAlmostEqual(0.4 * 0.2, pc_query.inference(updated_pc, {"a": True, "b": True}))
+        self.assertAlmostEqual(0.3 * 0.2, pc_query.inference(updated_pc, {"a": True, "c": True}))
+        self.assertAlmostEqual(0.1 * 0.2, pc_query.inference(updated_pc, {"a": True, "d": True}))
+        self.assertAlmostEqual(0.5 * 0.2, pc_query.inference(updated_pc, {"b": True, "c": True}))
+        self.assertAlmostEqual(0.2 * 0.2, pc_query.inference(updated_pc, {"c": True, "d": True}))
+        self.assertAlmostEqual(0.3 * 0.2, pc_query.inference(updated_pc, {"a": True, "b": True, "c": True}))
+        self.assertAlmostEqual(0.1 * 0.2, pc_query.inference(updated_pc, {"a": True, "b": True, "c": True, "d": True}))
 
 
 if __name__ == '__main__':

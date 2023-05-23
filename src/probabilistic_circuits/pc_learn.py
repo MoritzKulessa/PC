@@ -282,7 +282,7 @@ def relearn(pc: PCNode, extract_min_population_size: float = 0.01, learn_min_pop
             d |= leaf.mpe()
         instances.append(d)
 
-    logger.info("Forgot {}% of populations.".format(round(1 - np.sum(weights), 4)))
+    logger.info("Forgot {}% of populations.".format(round((1 - np.sum(weights)) * 100, 4)))
 
     return learn(instances, weights=weights, min_population_size=learn_min_population_size)
 
@@ -318,7 +318,7 @@ def update(pc: PCNode,
             d |= leaf.mpe()
         pc_instances.append(d)
 
-    logger.info("Forgot {}% of populations.".format(round(1 - np.sum(pc_weights), 4)))
+    logger.info("Forgot {}% of populations.".format(round((1 - np.sum(pc_weights)) * 100, 4)))
 
     # Concat the populations with the instances
     df = pd.concat([pd.DataFrame(pc_instances), df], ignore_index=True)
